@@ -11,6 +11,7 @@ const { StringDecoder } = require("string_decoder");
 const fs = require("fs");
 const config = require("./config");
 const router = require("./router");
+const helpers = require("./lib/helpers");
 
 // Instantiate the HTTP server
 const httpServer = http.createServer((req, res) => unifiedServer(req, res));
@@ -76,9 +77,9 @@ const unifiedServer = (req, res) => {
     const data = {
       trimmedPath: trimmedPathname,
       queryStringObject: query,
-      method: method,
+      method: method.toLowerCase(),
       headers: headers,
-      payload: buffer
+      payload: helpers.parseJsonToObject(buffer)
     };
 
     // Route the request to the handler specified in the router
@@ -108,8 +109,13 @@ const unifiedServer = (req, res) => {
       })
       .catch(e => {
         console.error(e);
-        res.writeHead(500);
-        res.end("");
+        res.writeHead(e.statusCode ? e.statusCode : 500, {
+          "Content-Type": "application/json"
+        });
+        if (e.Error) {
+          res.write(JSON.stringify({ Error: e.Error }));
+        }
+        res.end();
       });
   });
 };
